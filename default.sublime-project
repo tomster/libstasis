@@ -10,6 +10,7 @@
             "folder_exclude_patterns": [
                 "*.egg-info",
                 ".cache",
+                ".tox",
                 "bin",
                 "develop-eggs",
                 "include",
