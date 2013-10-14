@@ -10,7 +10,8 @@ from pyramid.router import Router
 from pyramid.scripting import _make_request
 from pyramid.traversal import traverse
 from pyramid.util import action_method
-from stasis.interfaces import IConfigFactory, INodeFactory, IVirtualRootFactory
+from stasis.events import PreBuild
+from stasis.interfaces import IConfigFactory, INodeFactory
 import dirtools
 import logging
 import os
@@ -68,20 +69,6 @@ class Configurator(BaseConfigurator):
         intr['factory'] = factory
         self.action(IConfigFactory, register, introspectables=(intr,))
 
-    @action_method
-    def set_virtualroot_factory(self, factory):
-        factory = self.maybe_dotted(factory)
-
-        def register():
-            self.registry.registerUtility(factory, IVirtualRootFactory)
-
-        intr = self.introspectable('virtualroot factories',
-                                   None,
-                                   self.object_description(factory),
-                                   'virtualroot factory')
-        intr['factory'] = factory
-        self.action(IVirtualRootFactory, register, introspectables=(intr,))
-
 
 def static_path(request, path, **kw):
     if not os.path.isabs(path):
@@ -123,18 +110,14 @@ class Site(object):
             self.siteconfig.setdefault('site', {})
             self.siteconfig['site'].setdefault('outpath', 'output')
             self.registry['root'] = config.registry.queryUtility(IRootFactory)
-            self.registry['virtualroot'] = config.registry.queryUtility(IVirtualRootFactory)
-            if self.registry['root'] and self.registry['virtualroot']:
-                raise ValueError("You can't use both a 'root' and a 'virtualroot'.")
             self.registry['siteconfig'] = self.siteconfig
             self.registry.registerUtility(lambda h, r: h, ITweens)
 
-    def traverse_content(self):
+    def get_paths(self):
         paths = set()
         root = self.registry['root']
-        virtualroot = self.registry['virtualroot']
         request = _make_request('/', registry=self.registry)
-        if root or virtualroot:
+        if root:
             excludes = self.siteconfig['site'].get('excludes', '').split('\n')
             excludes.extend([
                 '.*',
@@ -142,10 +125,10 @@ class Site(object):
                 '/site.cfg',
                 '/%s' % self.siteconfig['site']['outpath']])
             relpaths = dirtools.Dir(
-                (root or virtualroot).abspath,
+                root.abspath,
                 excludes=excludes).files()
             for relpath in relpaths:
-                traverse(root or virtualroot, relpath)
+                traverse(root, relpath)
                 if root:
                     paths.add('/%s' % relpath)
         visited_routes = set()
@@ -161,7 +144,7 @@ class Site(object):
         routelist = self.site.config.config.get_routes_mapper().routelist
         for route in routelist:
             if route.factory is not None:
-                matches = route.factory.matches(root or virtualroot)
+                matches = route.factory.matches(self.registry)
                 paths = paths.union(route.generate(x) for x in matches)
             elif route.name not in visited_routes:
                 paths.add(route.generate({}))
@@ -184,7 +167,8 @@ class Site(object):
 
     def build(self):
         with main_module(self.site):
-            paths = self.traverse_content()
+            self.registry.notify(PreBuild(self))
+            paths = self.get_paths()
             router = Router(self.registry)
             extensions = self.registry.queryUtility(IRequestExtensions)
             for path in paths:

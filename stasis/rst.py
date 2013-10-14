@@ -1,11 +1,13 @@
 from pyramid.decorator import reify
-from stasis.node import Node
+from stasis.entities import IAspects
+from stasis.walker import File
+from zope.interface import implements
 import datetime
 import docutils.core
 import docutils.writers.html4css1
 
 
-class RstNode(Node):
+class RstFile(File):
     @property
     def title(self):
         return self._parts['title']
@@ -39,7 +41,7 @@ class RstNode(Node):
             destination_class=docutils.io.StringOutput)
         pub.set_components('standalone', 'restructuredtext', 'html')
         pub.process_programmatic_settings(None, extra_params, None)
-        pub.set_source(source_path=self.abspath)
+        pub.set_source(source_path=self.filepath)
         pub.publish()
         return pub
 
@@ -48,5 +50,28 @@ class RstNode(Node):
         return self._pub.writer.parts
 
 
+class AspectsForRstFile(object):
+    implements(IAspects)
+
+    def __init__(self, rstfile):
+        self.rstfile = rstfile
+
+    def __getitem__(self, aspect):
+        if aspect == 'walker':
+            return self.rstfile.walker
+        elif aspect == 'date':
+            return self.rstfile.metadata['date']
+        elif aspect == 'title':
+            return self.rstfile.title
+        elif aspect == 'body':
+            return self.rstfile.body
+        raise KeyError(aspect)
+
+    def __iter__(self):
+        return iter(['walker', 'date', 'title', 'body'])
+
+
 def includeme(config):
-    config.add_node_factory('.rst', RstNode)
+    if hasattr(config, 'add_walker_file_type'):
+        config.add_walker_file_type('.rst', RstFile)
+    config.registry.registerAdapter(AspectsForRstFile, (RstFile,), IAspects)

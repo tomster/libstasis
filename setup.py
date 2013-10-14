@@ -2,7 +2,7 @@ from setuptools import setup
 
 
 setup(
-    version='0.2',
+    version='0.3',
     name='stasis',
     packages=['stasis'],
     install_requires=[
