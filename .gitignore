@@ -4,5 +4,6 @@
 /.tox/
 /bin/
 /develop-eggs/
+/dist/
 /include/
 /lib/
