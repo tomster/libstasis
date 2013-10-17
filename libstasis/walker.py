@@ -1,5 +1,5 @@
 from dirtools import Dir
-from stasis.entities import Column, types
+from libstasis.entities import Column, types
 from zope.interface import Interface
 import os
 

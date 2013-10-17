@@ -1,5 +1,5 @@
-from stasis.entities import IAspects
-from stasis.walker import File
+from libstasis.entities import IAspects
+from libstasis.walker import File
 from zope.interface import implements
 import datetime
 import docutils.core

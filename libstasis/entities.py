@@ -1,12 +1,8 @@
+from libstasis.interfaces import IAspects
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy import types
 from sqlalchemy.schema import Column, ForeignKey, Table
 from sqlalchemy.sql import select
-from zope.interface import Interface
-
-
-class IAspects(Interface):
-    pass
 
 
 class Entities(object):
