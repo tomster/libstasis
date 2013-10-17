@@ -70,8 +70,11 @@ class AspectsForRstFile(object):
             return self.rstfile.body
         raise KeyError(aspect)
 
+    def keys(self):
+        return ['walker', 'date', 'title', 'body']
+
     def __iter__(self):
-        return iter(['walker', 'date', 'title', 'body'])
+        return iter(self.keys())
 
 
 def includeme(config):

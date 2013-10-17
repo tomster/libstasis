@@ -1,4 +1,5 @@
 from libstasis.interfaces import IAspects
+from propdict import propdict
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy import types
 from sqlalchemy.schema import Column, ForeignKey, Table
@@ -28,13 +29,14 @@ class Entities(object):
     def add_entity(self, aspects):
         if self.registry is not None:
             aspects = self.registry.getAdapter(aspects, IAspects)
+        aspects = propdict(aspects)
         conn = self.engine.connect()
         tables = self.metadata.tables
         entity_id = conn.execute(tables['entity'].insert()).lastrowid
         for aspect in self.aspect_names.intersection(aspects):
             table = tables[aspect]
             data = aspects[aspect]
-            if isinstance(data, dict):
+            if isinstance(data, (propdict, dict)):
                 conn.execute(table.insert().values(id=entity_id, **data))
             else:
                 conn.execute(table.insert().values([entity_id, data]))
@@ -54,12 +56,9 @@ class Entities(object):
         result = conn.execute(s)
         rows = []
         for row in result:
-            data = {}
+            data = propdict()
             for column, value in zip(fields, row):
-                if len(self.aspects[column.table.name]) > 1:
-                    data.setdefault(column.table.name, {})[column.name] = value
-                else:
-                    data[column.name] = value
+                data.setdefault(column.table.name, propdict())[column.name] = value
             rows.append(data)
         return rows
 
