@@ -1,4 +1,3 @@
-from pyramid.decorator import reify
 from stasis.entities import IAspects
 from stasis.walker import File
 from zope.interface import implements
@@ -16,10 +15,12 @@ class RstFile(File):
     def body(self):
         return self._parts['fragment']
 
-    @reify
+    @property
     def metadata(self):
-        metadata = {}
-        for docinfo in self._pub.document.traverse(docutils.nodes.docinfo):
+        if hasattr(self, '_metadata'):
+            return self._metadata
+        self._metadata = {}
+        for docinfo in self.pub.document.traverse(docutils.nodes.docinfo):
             for element in docinfo.children:
                 if element.tagname == 'field':
                     name_elem, body_elem = element.children
@@ -31,23 +32,25 @@ class RstFile(File):
                 name = name.lower()
                 if name == 'date':
                     value = datetime.datetime.strptime(value, "%Y-%m-%d %H:%M")
-                metadata[name] = value
-        return metadata
+                self._metadata[name] = value
+        return self._metadata
 
-    @reify
-    def _pub(self):
+    @property
+    def pub(self):
+        if hasattr(self, '_pub'):
+            return self._pub
         extra_params = {'initial_header_level': '2'}
-        pub = docutils.core.Publisher(
+        self._pub = docutils.core.Publisher(
             destination_class=docutils.io.StringOutput)
-        pub.set_components('standalone', 'restructuredtext', 'html')
-        pub.process_programmatic_settings(None, extra_params, None)
-        pub.set_source(source_path=self.filepath)
-        pub.publish()
-        return pub
+        self._pub.set_components('standalone', 'restructuredtext', 'html')
+        self._pub.process_programmatic_settings(None, extra_params, None)
+        self._pub.set_source(source_path=self.filepath)
+        self._pub.publish()
+        return self._pub
 
     @property
     def _parts(self):
-        return self._pub.writer.parts
+        return self.pub.writer.parts
 
 
 class AspectsForRstFile(object):
