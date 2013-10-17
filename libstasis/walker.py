@@ -9,31 +9,37 @@ class IWalkerFileType(Interface):
 
 
 class File(object):
-    def __init__(self, walker, filepath):
+
+    @property
+    def filepath(self):
+        return os.path.join(self.basepath, self.subpath)
+
+    def __init__(self, walker, basepath, subpath):
         self.walker = walker
-        self.filepath = filepath
+        self.basepath = basepath
+        self.subpath = subpath
 
 
 class Walker(object):
-    def __init__(self, name, path):
+    def __init__(self, name=None, path=''):
         self.name = name
         self.path = path
 
     def walk(self, site):
-        add_entity = site.registry['entities'].add_entity
-        q = site.registry.queryUtility
-        path = os.path.join(site.registry['path'], self.path)
-        filenames = Dir(path).files()
-        for filename in filenames:
-            filepath = os.path.join(path, filename)
+        add_entity = site['entities'].add_entity
+        q = site.queryUtility
+        basepath = os.path.join(site['path'], self.path)
+        subpaths = Dir(basepath).files()
+        for subpath in subpaths:
+            filepath = os.path.join(basepath, subpath)
             ext = os.path.splitext(filepath)[1]
             factory = q(IWalkerFileType, name=ext, default=File)
-            add_entity(factory(self.name, filepath))
+            add_entity(factory(self.name, basepath=basepath, subpath=subpath))
 
 
 def add_filesystem_walker(config, name, path):
     def subscriber(event):
-        Walker(name, path).walk(event.site)
+        Walker(name=name, path=path).walk(event.site)
     config.add_subscriber(subscriber, "stasis.events.PreBuild")
 
 
