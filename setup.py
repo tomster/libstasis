@@ -6,6 +6,6 @@ setup(
     name='libstasis',
     packages=['libstasis'],
     install_requires=[
-        'propdict',
+        'propdict>1.0',
         'sqlalchemy',
         'zope.interface'])
