@@ -24,7 +24,7 @@ class Entities(object):
             *columns)
         table.create()
         self.aspects[name] = [x.name for x in columns]
-        self.aspect_names = set(self.aspects.iterkeys())
+        self.aspect_names = set(self.aspects.keys())
 
     def add_entity(self, aspects):
         if self.registry is not None:
@@ -45,7 +45,7 @@ class Entities(object):
         conn = self.engine.connect()
         tables = self.metadata.tables
         entity = tables['entity']
-        aspect_names = set(aspects).union(kw.iterkeys())
+        aspect_names = set(aspects).union(kw.keys())
         aspects = [tables[x] for x in aspect_names]
         fields = []
         joins = entity
