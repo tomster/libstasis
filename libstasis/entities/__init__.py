@@ -1,10 +1,11 @@
+from libstasis.entities.operators import and_
 from libstasis.interfaces import IAspects
 from propdict import propdict
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy import types
 from sqlalchemy.schema import Column, ForeignKey, Table
 from sqlalchemy.sql import select
-from sqlalchemy.sql.operators import Operators, and_
+from sqlalchemy.sql.operators import Operators
 
 
 class Entities(object):

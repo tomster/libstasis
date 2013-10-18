@@ -43,7 +43,7 @@ def test_multiple_query_filter(registry, entities):
 
 
 def test_complex_query_filter(registry, entities):
-    from sqlalchemy.sql.operators import or_
+    from libstasis.entities.operators import or_
     entities.add_entity(propdict(size=23, name=u'foo'))
     entities.add_entity(propdict(size=42, name=u'bar'))
     a = entities.aspects
