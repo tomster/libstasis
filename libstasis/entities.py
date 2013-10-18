@@ -4,6 +4,7 @@ from sqlalchemy import create_engine, MetaData
 from sqlalchemy import types
 from sqlalchemy.schema import Column, ForeignKey, Table
 from sqlalchemy.sql import select
+from sqlalchemy.sql.operators import Operators, and_
 
 
 class Entities(object):
@@ -15,7 +16,7 @@ class Entities(object):
             'entity', self.metadata,
             Column('id', types.Integer, primary_key=True))
         entity.create()
-        self.aspects = dict()
+        self.aspects = propdict()
 
     def add_aspect(self, name, *columns):
         table = Table(
@@ -23,8 +24,11 @@ class Entities(object):
             Column('id', types.Integer, ForeignKey("entity.id")),
             *columns)
         table.create()
-        self.aspects[name] = [x.name for x in columns]
-        self.aspect_names = set(self.aspects.keys())
+        self.aspects[name] = propdict(
+            ((x.name, x) for x in columns),
+            _name=name,
+            _table=table)
+        self._aspect_names = set(self.aspects.keys())
 
     def add_entity(self, aspects):
         if self.registry is not None:
@@ -33,26 +37,44 @@ class Entities(object):
         conn = self.engine.connect()
         tables = self.metadata.tables
         entity_id = conn.execute(tables['entity'].insert()).lastrowid
-        for aspect in self.aspect_names.intersection(aspects):
-            table = tables[aspect]
-            data = aspects[aspect]
+        for aspectname in self._aspect_names.intersection(aspects):
+            table = tables[aspectname]
+            data = aspects[aspectname]
             if isinstance(data, (propdict, dict)):
                 conn.execute(table.insert().values(id=entity_id, **data))
             else:
                 conn.execute(table.insert().values([entity_id, data]))
 
-    def query(self, *aspects, **kw):
+    def query(self, *args):
         conn = self.engine.connect()
         tables = self.metadata.tables
         entity = tables['entity']
-        aspect_names = set(aspects).union(kw.keys())
-        aspects = [tables[x] for x in aspect_names]
+        aspects = set()
+        filters = []
+        for arg in args:
+            if isinstance(arg, Operators):
+                filters.append(arg)
+                children = list(arg.get_children())
+                for child in children:
+                    if isinstance(child, Column):
+                        aspects.add(child.table)
+                    elif isinstance(child, Operators):
+                        children.extend(child.get_children())
+            elif isinstance(arg, propdict):
+                aspects.add(arg._table)
+            else:
+                aspects.add(tables[arg])
         fields = []
         joins = entity
         for aspect in aspects:
             fields.extend(aspect.columns.values()[1:])
             joins = joins.join(aspect)
         s = select(fields).select_from(joins)
+        if filters:
+            if len(filters) == 1:
+                s = s.where(filters[0])
+            else:
+                s = s.where(and_(*filters))
         result = conn.execute(s)
         rows = []
         for row in result:
