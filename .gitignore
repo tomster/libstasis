@@ -3,4 +3,4 @@
 /.tox/
 /dist/
 /htmlcov/
-/.coverage/
+/.coverage
