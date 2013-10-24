@@ -1,26 +1,27 @@
+from propdict import propdict
 from libstasis.entities import IAspects
-from libstasis.walker import File
 from zope.interface import implements
 import datetime
 import docutils.core
 import docutils.writers.html4css1
 
 
-class RstFile(File):
+class RstFile(propdict):
+
     @property
     def title(self):
-        return self._parts['title']
+        return self._parts()['title']
 
     @property
     def body(self):
-        return self._parts['fragment']
+        return self._parts().get('fragment')
 
     @property
     def metadata(self):
         if hasattr(self, '_metadata'):
             return self._metadata
         self._metadata = {}
-        for docinfo in self.pub.document.traverse(docutils.nodes.docinfo):
+        for docinfo in self.pub().document.traverse(docutils.nodes.docinfo):
             for element in docinfo.children:
                 if element.tagname == 'field':
                     name_elem, body_elem = element.children
@@ -35,22 +36,26 @@ class RstFile(File):
                 self._metadata[name] = value
         return self._metadata
 
-    @property
     def pub(self):
+        # caching
         if hasattr(self, '_pub'):
             return self._pub
         extra_params = {'initial_header_level': '2'}
-        self._pub = docutils.core.Publisher(
+        _pub = docutils.core.Publisher(
             destination_class=docutils.io.StringOutput)
-        self._pub.set_components('standalone', 'restructuredtext', 'html')
-        self._pub.process_programmatic_settings(None, extra_params, None)
-        self._pub.set_source(source_path=self.filepath)
-        self._pub.publish()
-        return self._pub
+        _pub.set_components('standalone', 'restructuredtext', 'html')
+        _pub.process_programmatic_settings(None, extra_params, None)
+        _pub.set_source(source_path=self.file.filepath)
+        _pub.publish()
+        self._pub = _pub
+        return _pub
 
-    @property
     def _parts(self):
-        return self.pub.writer.parts
+        return self.pub().writer.parts
+
+    def __init__(self, file=None):
+        if file is not None:
+            self.file = file
 
 
 class AspectsForRstFile(object):

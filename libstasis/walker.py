@@ -14,7 +14,8 @@ class File(object):
     def filepath(self):
         return os.path.join(self.basepath, self.subpath)
 
-    def __init__(self, walker, basepath, subpath):
+    def __init__(self, site, walker, basepath, subpath):
+        self.site = site
         self.walker = walker
         self.basepath = basepath
         self.subpath = subpath
@@ -34,7 +35,7 @@ class Walker(object):
             filepath = os.path.join(basepath, subpath)
             ext = os.path.splitext(filepath)[1]
             factory = q(IWalkerFileType, name=ext, default=File)
-            add_entity(factory(self.name, basepath=basepath, subpath=subpath))
+            add_entity(factory(site, self.name, basepath=basepath, subpath=subpath))
 
 
 def add_filesystem_walker(config, name, path):
