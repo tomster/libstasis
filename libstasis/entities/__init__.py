@@ -41,10 +41,9 @@ class Entities(object):
         for aspectname in self._aspect_names.intersection(aspects):
             table = tables[aspectname]
             data = aspects[aspectname]
-            if isinstance(data, (propdict, dict)):
-                conn.execute(table.insert().values(id=entity_id, **data))
-            else:
-                conn.execute(table.insert().values([entity_id, data]))
+            if not isinstance(data, (propdict, dict)):
+                data = {self.aspects[aspectname].value.name: data}
+            conn.execute(table.insert().values(id=entity_id, **data))
 
     def query(self, *args):
         conn = self.engine.connect()
