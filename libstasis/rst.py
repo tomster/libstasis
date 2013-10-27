@@ -16,11 +16,8 @@ class RstFile(propdict):
     def body(self):
         return self._parts().get('fragment')
 
-    @property
     def metadata(self):
-        if hasattr(self, '_metadata'):
-            return self._metadata
-        self._metadata = {}
+        metadata = {}
         for docinfo in self.pub().document.traverse(docutils.nodes.docinfo):
             for element in docinfo.children:
                 if element.tagname == 'field':
@@ -33,8 +30,8 @@ class RstFile(propdict):
                 name = name.lower()
                 if name == 'date':
                     value = datetime.datetime.strptime(value, "%Y-%m-%d %H:%M")
-                self._metadata[name] = value
-        return self._metadata
+                metadata[name] = value
+        return metadata
 
     def pub(self):
         # caching
@@ -56,6 +53,7 @@ class RstFile(propdict):
     def __init__(self, file=None):
         if file is not None:
             self.file = file
+            self.update(self.metadata())
 
 
 class AspectsForRstFile(object):
